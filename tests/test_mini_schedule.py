@@ -31,6 +31,21 @@ class TestMiniScheduler(unittest.TestCase):
         self.assertEqual(len(points[1].ending), 1)
         self.assertEqual(len(points[2].ending), 1)
 
+    def test_remove_future_callback_removes_matching_callback(self):
+        scheduler = MiniScheduler()
+
+        def cb1(_):
+            return None
+
+        def cb2(_):
+            return None
+
+        scheduler.registerFutureCallback(cb1, 5)
+        scheduler.registerFutureCallback(cb2, 10)
+        scheduler.removeFutureCallback(cb1)
+        self.assertEqual(len(scheduler.future_callbacks), 1)
+        self.assertIs(scheduler.future_callbacks[0].callback, cb2)
+
 
 if __name__ == "__main__":
     unittest.main()

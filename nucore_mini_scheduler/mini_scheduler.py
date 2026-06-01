@@ -83,10 +83,11 @@ class MiniScheduler(threading.Thread):
 
     def removeFutureCallback(self, callback):
         try:
-            for i in range(len(self.future_callbacks)):
-                f_callback = self.future_callbacks[i]
-                if f_callback == callback:
-                    del self.future_callbacks[i]
+            self.future_callbacks = [
+                f_callback
+                for f_callback in self.future_callbacks
+                if f_callback.callback != callback
+            ]
         except Exception:
             pass
 
@@ -95,7 +96,7 @@ class MiniScheduler(threading.Thread):
             self.start()
         if self.timeseries == ts:
             return
-        while not self.scheduler_control.is_stop_set():
+        if not self.scheduler_control.is_stop_set():
             self.scheduler_control.stop()
         self.timeseries = ts
         self.scheduler_control.start()
