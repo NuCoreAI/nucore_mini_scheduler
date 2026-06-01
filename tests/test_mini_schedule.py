@@ -5,6 +5,30 @@ from nucore_mini_scheduler import MiniSchedule, MiniScheduler
 
 
 class TestMiniSchedule(unittest.TestCase):
+    def test_null_id_generates_unique_id(self):
+        schedule1 = MiniSchedule(id=None)
+        schedule2 = MiniSchedule(id=None)
+
+        self.assertIsNotNone(schedule1.getId())
+        self.assertIsNotNone(schedule2.getId())
+        self.assertNotEqual(schedule1.getId(), schedule2.getId())
+
+    def test_description_can_be_null(self):
+        schedule = MiniSchedule(id="abc", description=None)
+        self.assertIsNone(schedule.getDescription())
+
+    def test_equal_when_content_matches(self):
+        start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+        s1 = MiniSchedule(id="seg-1", description="demo", start_time=start, duration=120)
+        s2 = MiniSchedule(id="seg-1", description="demo", start_time=start, duration=120)
+        self.assertEqual(s1, s2)
+
+    def test_not_equal_when_id_differs(self):
+        start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+        s1 = MiniSchedule(id="seg-1", description="demo", start_time=start, duration=120)
+        s2 = MiniSchedule(id="seg-2", description="demo", start_time=start, duration=120)
+        self.assertNotEqual(s1, s2)
+
     def test_duration_calculates_end(self):
         start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
         schedule = MiniSchedule(start_time=start, duration=120)
