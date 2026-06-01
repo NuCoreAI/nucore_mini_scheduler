@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nucore-mini-scheduler"
+version = "0.1.0"
+description = "A lightweight thread-based scheduler for start/end/future callbacks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "NuCoreAI" }
+]
+keywords = ["scheduler", "threading", "callback", "time"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/NuCoreAI/nucore_mini_scheduler"
+Repository = "https://github.com/NuCoreAI/nucore_mini_scheduler"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nucore_mini_scheduler*"]
+exclude = ["tests*"]

@@ -1,3 +1,5 @@
+"""Threaded scheduler that emits callbacks for MiniSchedule events."""
+
 import threading
 import time
 from datetime import timedelta
@@ -7,12 +9,16 @@ from .mini_schedule import MiniSchedule
 
 
 class FutureCallback:
+    """Container for a callback and its look-ahead window in seconds."""
+
     def __init__(self, callback: callable, duration: int):
         self.callback = callback
         self.duration = duration
 
 
 class SchedulePoint:
+    """Grouping of segments that share the same timestamp."""
+
     def __init__(self, time):
         self.time = time
         self.starting = []
@@ -27,24 +33,30 @@ class SchedulePoint:
 
 
 class SchedulerControl:
+    """Synchronization primitives to start and stop scheduler work."""
+
     def __init__(self):
         self.stop_event = threading.Event()
         self.start_event = threading.Event()
         self.stopped = True
 
     def wait_for_stop(self, timeout=None):
+        """Block until stop is requested or timeout elapses."""
         self.stopped = False
         return self.stop_event.wait(timeout=timeout)
 
     def wait_for_start(self, timeout=None):
+        """Block until start is requested or timeout elapses."""
         self.stopped = True
         return self.start_event.wait(timeout=timeout)
 
     def start(self):
+        """Signal scheduler execution to begin/resume."""
         self.stop_event.clear()
         self.start_event.set()
 
     def stop(self):
+        """Signal scheduler execution to halt."""
         self.stop_event.set()
         time.sleep(0.5)
         self.start_event.clear()
@@ -60,6 +72,8 @@ class SchedulerControl:
 
 
 class MiniScheduler(threading.Thread):
+    """Background thread that processes MiniSchedule time series."""
+
     def __init__(self):
         threading.Thread.__init__(self)
         self.timeseries: list[MiniSchedule] | None = None
@@ -70,18 +84,22 @@ class MiniScheduler(threading.Thread):
         self.current_index = 0
 
     def registerCallback(self, callback):
+        """Register callback fired for start and end events."""
         self.callbacks.append(callback)
 
     def removeCallback(self, callback):
+        """Remove a previously registered callback if present."""
         try:
             self.callbacks.remove(callback)
         except Exception:
             pass
 
     def registerFutureCallback(self, callback, duration: int):
+        """Register callback for segments starting within duration seconds."""
         self.future_callbacks.append(FutureCallback(callback, duration))
 
     def removeFutureCallback(self, callback):
+        """Remove all future callbacks matching callback."""
         try:
             self.future_callbacks = [
                 f_callback
@@ -92,6 +110,10 @@ class MiniScheduler(threading.Thread):
             pass
 
     def setTimeSeries(self, ts: list[MiniSchedule]):
+        """Set or replace current time series and (re)start scheduling.
+
+        If ``ts`` has the same value as the existing time series, it is ignored.
+        """
         if not self.is_alive():
             self.start()
         if self.timeseries == ts:
@@ -102,6 +124,7 @@ class MiniScheduler(threading.Thread):
         self.scheduler_control.start()
 
     def _build_schedule(self, timeseries: list[MiniSchedule]) -> list[SchedulePoint]:
+        """Build sorted timestamp buckets for start and end transitions."""
         points = {}
         for segment in timeseries:
             start = segment.getStartTime()
@@ -118,6 +141,7 @@ class MiniScheduler(threading.Thread):
         return sorted(points.values(), key=lambda p: p.time)
 
     def _notify_start_events(self, point: SchedulePoint, check_end: bool):
+        """Dispatch callbacks for segment starts or pending same-point endings."""
         try:
             for callback in self.callbacks:
                 for segment in (point.ending if check_end else point.starting):
@@ -128,6 +152,7 @@ class MiniScheduler(threading.Thread):
             pass
 
     def _notify_end_events(self, point: SchedulePoint):
+        """Dispatch callbacks for segment ends and mark segments processed."""
         try:
             for callback in self.callbacks:
                 for segment in point.ending:
@@ -138,6 +163,7 @@ class MiniScheduler(threading.Thread):
             pass
 
     def _notify_future_events(self, schedule: list[SchedulePoint], from_index: int):
+        """Dispatch look-ahead callbacks for near-future segment starts."""
         try:
             for f_callback in self.future_callbacks:
                 current_time = get_current_utc_time()
@@ -153,6 +179,7 @@ class MiniScheduler(threading.Thread):
             pass
 
     def run(self):
+        """Main loop that waits for work and emits scheduler events over time."""
         while True:
             self.scheduler_control.wait_for_start(timeout=1800)
             if self.scheduler_control.is_stop_set():
@@ -189,6 +216,7 @@ class MiniScheduler(threading.Thread):
                 self.scheduler_control.stop()
 
     def stop(self):
+        """Stop current scheduling run and clear active state."""
         if self.scheduler_control.is_stopped():
             return
         self.scheduler_control.stop()
